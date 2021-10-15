@@ -1,0 +1,92 @@
+//1.引入log4j2的pom文件
+ <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-log4j2</artifactId>
+</dependency>
+
+//2.配置log4j2相应的xml，输出相应的日志文件
+
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Properties>
+    <Property name="LOG_HOME">logs</Property>
+    <!--%d{yyyy-MM-dd HH:mm:ss.SSS}:日志产生时间，精确到毫秒-->
+    <!-- %-5level : 输出日志级别，-5表示左对齐并且固定输出5个字符-->
+    <!-- %thread : 输出日志的进程名字，这在Web应用以及异步任务处理中很有用-->
+    <!-- %c : 输出所属类目，通常是所在类的全名-->
+    <!-- %L : 行号-->
+    <!-- %msg : 日志消息-->
+    <!-- %n : 平台的换行符-->
+    <property name="PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} |-%-5level [%thread] %c [%L] -| %msg%n</property>
+  </Properties>
+
+  <!--Appenders节点，常见的有三种子节点:Console、RollingFile、File.-->
+  <Appenders>
+ <!-- Console节点用来定义输出到控制台的Appender.-->
+    <Console name="CONSOLE" target="system_out">
+      <PatternLayout pattern="${PATTERN}"/>
+    </Console>
+
+<!--RollingFile节点用来定义超过指定大小自动删除旧的创建新的的Appender：info、warn级别日志-->
+    <RollingFile fileName="${LOG_HOME}/log.log" filePattern="${LOG_HOME}/log-%d{yyyy-MM-dd}.log"
+      name="info_file">
+      <PatternLayout
+        pattern="%date{yyyy-MM-dd HH:mm:ss.SSS} %level [%file:%line] - %msg%n"/>
+        
+<!--Policies:指定滚动日志的策略，就是什么时候进行新建日志文件输出日志.-->
+      <Policies>
+        <TimeBasedTriggeringPolicy modulate="true" interval="1"/>
+        <SizeBasedTriggeringPolicy size="2500MB"/>
+      </Policies>
+
+<!--　DefaultRolloverStrategy:用来指定同一个文件夹下最多有几个日志文件时开始删除最旧的，创建新的(通过max属性)。-->
+      <DefaultRolloverStrategy max="10">
+        <Delete basePath="${LOG_HOME}" maxDepth="2" followLinks="true">
+          <IfFileName glob="*.log"/>
+          <IfLastModified age="6H"/>
+        </Delete>
+      </DefaultRolloverStrategy>
+
+      <Filters>
+            <ThresholdFilter level="info" onMatch="ACCEPT"
+              onMismatch="DENY" />
+            <ThresholdFilter level="warn" onMatch="ACCEPT"
+              onMismatch="DENY" />
+            <ThresholdFilter level="error" onMatch="DENY"
+              onMismatch="NEUTRAL" />
+
+      </Filters>
+    </RollingFile>
+
+<!--error级别日志-->
+    <RollingFile fileName="${LOG_HOME}/error.log" filePattern="${LOG_HOME}/log-%d{yyyy-MM-dd}.log"
+        name="error_file">
+          <DefaultRolloverStrategy>
+              <Delete basePath="${LOG_HOME}" followLinks="true" maxDepth="1">
+                  <IfFileName glob="*.log"/>
+                  <IfLastModified age="2d"/>
+              </Delete>
+          </DefaultRolloverStrategy>
+          <PatternLayout
+            pattern="%date{yyyy-MM-dd HH:mm:ss.SSS} %level [%file:%line] - %msg%n"/>
+          <Policies>
+              <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+          </Policies>
+          <Filters>
+              <ThresholdFilter level="error" onMatch="ACCEPT"
+                onMismatch="DENY" />
+          </Filters>
+      </RollingFile>
+  </Appenders>
+
+ <!--Loggers节点，常见的有两种:Root和Logger。 level:日志输出级别，AppenderRef：Root的子节点，用来指定该日志输出到哪个Appender.-->
+  <Loggers>
+    <Root level="info">
+      <AppenderRef ref="info_file"/>
+      <AppenderRef ref="CONSOLE"/>
+      <AppenderRef ref="http"/>
+      <AppenderRef ref="error_file"/>
+    </Root>
+  </Loggers>
+
+</Configuration>
